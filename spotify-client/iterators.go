@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func PlayListIterator(client *spotify.Client, currentUser *spotify.PrivateUser) <-chan spotify.SimplePlaylist {
+func PlayListIterator(client *spotify.Client) <-chan spotify.SimplePlaylist {
 	ch := make(chan spotify.SimplePlaylist)
 	offset := 0
 	limit := 50
@@ -21,17 +21,12 @@ func PlayListIterator(client *spotify.Client, currentUser *spotify.PrivateUser) 
 			}
 
 			for _, playlist := range playlistPage.Playlists {
-				// && playlist.ID == "3QgOKxAuYfpdqBPdYp6wBl"
-				// filter out collaborative and liked playlists
-				if playlist.Owner.ID == currentUser.ID /*&& (playlist.ID == "3QgOKxAuYfpdqBPdYp6wBl" || playlist.ID == "4GaM4VDRN25luGjxvjrsIx")*/ {
-					ch <- playlist
-				}
+				ch <- playlist
 			}
 
 			offset += limit
 
 			if playlistPage.Next == "" {
-				log.Println("Finished fetching all playlists")
 				close(ch)
 				return
 			}
@@ -41,13 +36,13 @@ func PlayListIterator(client *spotify.Client, currentUser *spotify.PrivateUser) 
 	return ch
 }
 
-type TrackPosition struct {
+type Item struct {
 	Track    spotify.SimpleTrack
 	Position int
 }
 
-func ItemsIterator(client *spotify.Client, playlistId spotify.ID) <-chan TrackPosition {
-	ch := make(chan TrackPosition)
+func ItemsIterator(client *spotify.Client, playlistId spotify.ID) <-chan Item {
+	ch := make(chan Item)
 	offset := 0
 	limit := 50
 
@@ -59,7 +54,7 @@ func ItemsIterator(client *spotify.Client, playlistId spotify.ID) <-chan TrackPo
 			}
 
 			for i, item := range fullPlaylist.Items {
-				ch <- TrackPosition{
+				ch <- Item{
 					Track:    item.Track.Track.SimpleTrack,
 					Position: i + offset,
 				}

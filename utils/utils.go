@@ -16,6 +16,21 @@ func LoadEnvVariables() {
 	}
 }
 
+func ChunkSlice[T any](slice []T, chunkSize int) [][]T {
+	var result [][]T
+
+	for i := 0; i < len(slice); i += chunkSize {
+		end := i + chunkSize
+		if end > len(slice) {
+			end = len(slice)
+		}
+
+		result = append(result, slice[i:end])
+	}
+
+	return result
+}
+
 func PrettyPrintJson(j any) {
 	marshaled, err := json.MarshalIndent(j, "", "   ")
 	if err != nil {

@@ -28,7 +28,8 @@ func (c *SpotifyClient) Authenticate() *spotify.Client {
 	})
 
 	go func() {
-		err := http.ListenAndServe(":8080", nil)
+		addr := fmt.Sprintf("%s:%s", c.redirectBaseUri, c.redirectPort)
+		err := http.ListenAndServe(addr, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
