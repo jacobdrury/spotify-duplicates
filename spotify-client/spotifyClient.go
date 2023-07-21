@@ -108,6 +108,7 @@ func (c *SpotifyClient) findDuplicates(playlist *spotify.SimplePlaylist) map[spo
 }
 
 func (c *SpotifyClient) removeTracks(playlist *spotify.SimplePlaylist, duplicateTracks map[spotify.ID]spotify.TrackToRemove) {
+	// Restrict to just my testing playlists so i don't mess up my personal ones while developing this :)
 	if playlist.ID != "3QgOKxAuYfpdqBPdYp6wBl" && playlist.ID != "4GaM4VDRN25luGjxvjrsIx" {
 		return
 	}
