@@ -16,7 +16,7 @@ func NewPageOptions(limit int, offset int) *PageOptions {
 	}
 }
 
-func NewDefaultPageOptions() *PageOptions {
+func DefaultPageOptions() *PageOptions {
 	return &PageOptions{
 		Offset: 0,
 		Limit:  50,

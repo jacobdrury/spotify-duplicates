@@ -42,13 +42,12 @@ func (c *SpotifyClient) RemoveDuplicatesFromPlaylists() {
 	c.client = authentication.NewHandler().Login(c)
 
 	usersPlayLists := make([]spotify.SimplePlaylist, 0)
-
 	wg := sync.WaitGroup{}
 
 	playlistCh := pagination.ConsumePaginatedEndpoint[spotify.SimplePlaylist](
 		c.client,
 		pagination.NewPlayListIterator(),
-		pagination.NewDefaultPageOptions())
+		pagination.DefaultPageOptions())
 
 	for playlist := range playlistCh {
 		// Skip collaborative and liked playlists
@@ -90,7 +89,7 @@ func (c *SpotifyClient) findDuplicates(playlist *spotify.SimplePlaylist) map[spo
 	itemCh := pagination.ConsumePaginatedEndpoint[pagination.PlaylistItem](
 		c.client,
 		pagination.NewItemsPaginator(playlist.ID),
-		pagination.NewDefaultPageOptions())
+		pagination.DefaultPageOptions())
 
 	for item := range itemCh {
 		// TODO: Update to check for same name and artist instead of ID

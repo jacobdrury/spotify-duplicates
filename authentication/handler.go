@@ -46,17 +46,29 @@ func NewHandler() *Handler {
 	}
 }
 
-func (a *Handler) Login(cb LoginCallBack) *spotify.Client {
-	a.ch = make(chan *spotify.Client)
-	a.auth = newSpotifyOAuthClient(a.redirectUrl)
+func (h *Handler) Login(cb LoginCallBack) *spotify.Client {
+	h.ch = make(chan *spotify.Client)
+	h.auth = newSpotifyOAuthClient(h.redirectUrl)
 
 	// first start an HTTP server
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		a.oAuthCallBack(w, r, cb)
+		token, err := h.auth.Token(r.Context(), h.state, r)
+		if err != nil {
+			http.Error(w, "Couldn't get token", http.StatusForbidden)
+			log.Fatal(err)
+		}
+
+		if st := r.FormValue("state"); st != h.state {
+			http.NotFound(w, r)
+			log.Fatalf("State mismatch: %s != %s\n", st, h.state)
+		}
+
+		_, _ = fmt.Fprintf(w, "Login Completed!")
+		cb.OnLoginSuccess(h.ch, h.auth, token)
 	})
 
 	// Start Web Server
-	httpServer := &http.Server{Addr: a.baseUrl}
+	httpServer := &http.Server{Addr: h.baseUrl}
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -75,31 +87,15 @@ func (a *Handler) Login(cb LoginCallBack) *spotify.Client {
 		wg.Wait()
 	}()
 
-	url := a.auth.AuthURL(a.state)
+	url := h.auth.AuthURL(h.state)
 	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
 
 	utils.OpenBrowser(url)
 
 	// Wait for auth to complete
-	client := <-a.ch
+	client := <-h.ch
 
 	return client
-}
-
-func (a *Handler) oAuthCallBack(w http.ResponseWriter, r *http.Request, cb LoginCallBack) {
-	tok, err := a.auth.Token(r.Context(), a.state, r)
-	if err != nil {
-		http.Error(w, "Couldn't get token", http.StatusForbidden)
-		log.Fatal(err)
-	}
-
-	if st := r.FormValue("state"); st != a.state {
-		http.NotFound(w, r)
-		log.Fatalf("State mismatch: %s != %s\n", st, a.state)
-	}
-
-	_, _ = fmt.Fprintf(w, "Login Completed!")
-	cb.OnLoginSuccess(a.ch, a.auth, tok)
 }
 
 func newSpotifyOAuthClient(redirectUrl string) *spotifyauth.Authenticator {
