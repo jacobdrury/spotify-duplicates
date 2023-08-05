@@ -1,13 +1,20 @@
 package main
 
 import (
-	spotify_client "github.com/jacobdrury/spotify-duplicates/spotify-client"
-	"github.com/jacobdrury/spotify-duplicates/utils"
+	spotify "github.com/jacobdrury/spotify-duplicates/spotifyclient"
+	"github.com/joho/godotenv"
+	"log"
 )
 
 func main() {
-	utils.LoadEnvVariables()
+	// TODO: Parse cmd line args for specific playlists
 
-	spotifyClient := spotify_client.NewSpotifyClient()
-	spotifyClient.RemoveDuplicatesFromPlaylists()
+	// loads values from .env into the system
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("No .env file found")
+	}
+
+	spotify.
+		NewClient().
+		RemoveDuplicatesFromPlaylists()
 }

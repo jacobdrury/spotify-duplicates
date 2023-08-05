@@ -1,70 +1,63 @@
-package spotify_client
+package spotifyclient
 
 import (
 	"context"
 	"fmt"
+	"github.com/jacobdrury/spotify-duplicates/authentication"
+	"github.com/jacobdrury/spotify-duplicates/spotifyclient/pagination"
 	"github.com/jacobdrury/spotify-duplicates/utils"
 	"github.com/zmb3/spotify/v2"
 	spotifyAuth "github.com/zmb3/spotify/v2/auth"
 	"golang.org/x/exp/maps"
+	"golang.org/x/oauth2"
 	"log"
-	"os"
 	"sync"
 )
 
 type SpotifyClient struct {
-	auth          *spotifyAuth.Authenticator
-	clientChannel chan *spotify.Client
-	client        *spotify.Client
-	currentUser   *spotify.PrivateUser
-	state         string
-
-	// URI spotify will redirect user to after successful auth
-	redirectUri     string
-	redirectPort    string
-	redirectBaseUri string
+	client      *spotify.Client
+	currentUser *spotify.PrivateUser
 }
 
-func NewSpotifyClient() *SpotifyClient {
-	redirectBaseUri := os.Getenv("REDIRECT_BASE_URI")
-	if redirectBaseUri == "" {
-		log.Fatal("REDIRECT_BASE_URI environment variable not found")
+func NewClient() *SpotifyClient {
+	return &SpotifyClient{}
+}
+
+func (c *SpotifyClient) OnLoginSuccess(ch chan *spotify.Client, auth *spotifyAuth.Authenticator, tok *oauth2.Token) {
+	// Use the token to get an authenticated client
+	client := spotify.New(auth.Client(context.TODO(), tok))
+
+	user, err := client.CurrentUser(context.Background())
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	redirectPort := os.Getenv("REDIRECT_PORT")
-	if redirectPort == "" {
-		log.Fatal("REDIRECT_PORT environment variable not found")
-	}
+	c.currentUser = user
 
-	redirectUri := fmt.Sprintf("http://%s:%s/callback", redirectBaseUri, redirectPort)
-
-	return &SpotifyClient{
-		auth: spotifyAuth.New(
-			spotifyAuth.WithRedirectURL(redirectUri),
-			spotifyAuth.WithScopes(
-				spotifyAuth.ScopeUserReadPrivate,
-				spotifyAuth.ScopePlaylistModifyPrivate,
-				spotifyAuth.ScopePlaylistModifyPublic,
-				spotifyAuth.ScopePlaylistReadPrivate,
-				spotifyAuth.ScopePlaylistReadCollaborative,
-			)),
-		clientChannel:   make(chan *spotify.Client),
-		state:           "abc123",
-		redirectUri:     redirectUri,
-		redirectPort:    redirectPort,
-		redirectBaseUri: redirectBaseUri,
-	}
+	fmt.Println("You are logged in as:", c.currentUser.ID)
+	ch <- client
 }
 
 func (c *SpotifyClient) RemoveDuplicatesFromPlaylists() {
-	c.client = c.Authenticate()
+	c.client = authentication.NewHandler().Login(c)
 
 	usersPlayLists := make([]spotify.SimplePlaylist, 0)
 
 	wg := sync.WaitGroup{}
-	for playlist := range PlayListIterator(c.client) {
+
+	playlistCh := pagination.ConsumePaginatedEndpoint[spotify.SimplePlaylist](
+		c.client,
+		pagination.NewPlayListIterator(),
+		pagination.NewDefaultPageOptions())
+
+	for playlist := range playlistCh {
 		// Skip collaborative and liked playlists
 		if playlist.Owner.ID != c.currentUser.ID {
+			continue
+		}
+
+		// Restrict to just my testing playlists so i don't mess up my personal ones while developing this :)
+		if playlist.ID != "3QgOKxAuYfpdqBPdYp6wBl" && playlist.ID != "4GaM4VDRN25luGjxvjrsIx" {
 			continue
 		}
 
@@ -94,7 +87,12 @@ func (c *SpotifyClient) findDuplicates(playlist *spotify.SimplePlaylist) map[spo
 	duplicateTracks := make(map[spotify.ID]spotify.TrackToRemove)
 
 	// check for duplicates
-	for item := range ItemsIterator(c.client, playlist.ID) {
+	itemCh := pagination.ConsumePaginatedEndpoint[pagination.PlaylistItem](
+		c.client,
+		pagination.NewItemsPaginator(playlist.ID),
+		pagination.NewDefaultPageOptions())
+
+	for item := range itemCh {
 		// TODO: Update to check for same name and artist instead of ID
 		if hashMap[item.Track.ID] != "" {
 			addDuplicateTrack(duplicateTracks, &item)
@@ -108,11 +106,6 @@ func (c *SpotifyClient) findDuplicates(playlist *spotify.SimplePlaylist) map[spo
 }
 
 func (c *SpotifyClient) removeTracks(playlist *spotify.SimplePlaylist, duplicateTracks map[spotify.ID]spotify.TrackToRemove) {
-	// Restrict to just my testing playlists so i don't mess up my personal ones while developing this :)
-	if playlist.ID != "3QgOKxAuYfpdqBPdYp6wBl" && playlist.ID != "4GaM4VDRN25luGjxvjrsIx" {
-		return
-	}
-
 	fmt.Printf("Removing %d duplicate tracks in %s\b\n", len(duplicateTracks), playlist.Name)
 
 	// Spotify limits delete to 100 values
@@ -134,7 +127,7 @@ func (c *SpotifyClient) removeTracks(playlist *spotify.SimplePlaylist, duplicate
 	}
 }
 
-func addDuplicateTrack(duplicateTracks map[spotify.ID]spotify.TrackToRemove, trackPosition *Item) {
+func addDuplicateTrack(duplicateTracks map[spotify.ID]spotify.TrackToRemove, trackPosition *pagination.PlaylistItem) {
 	existingDuplicateTrack, found := duplicateTracks[trackPosition.Track.ID]
 	if found {
 		// The track is already in duplicateTracks. Add the position to the Positions slice.

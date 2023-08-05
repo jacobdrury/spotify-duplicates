@@ -3,18 +3,10 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os/exec"
 	"runtime"
 )
-
-func LoadEnvVariables() {
-	// loads values from .env into the system
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("No .env file found")
-	}
-}
 
 func ChunkSlice[T any](slice []T, chunkSize int) [][]T {
 	var result [][]T
