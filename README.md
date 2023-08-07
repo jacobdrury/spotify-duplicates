@@ -33,28 +33,30 @@ Spotify Playlist Duplicate Remover is a Golang application that helps you remove
     ```
    
 3. **Create Spotify App**
+
    1. Once on the dev dashboard click [Create App](https://developer.spotify.com/dashboard/create)
+
    2. Fill in the required fields (name, description, redirect uri)
-      1. RedirectUri is the uri spotify will redirect the user to after successful authentication. \
+      - RedirectUri is the uri spotify will redirect the user to after successful authentication. \
       Ex: http://localhost:8080/callback
-4. **Set up environment variables:**
-    #### Accepted .env variables
+4. **Set up environment variables:**   
+   1. Create a `.env` file in the project root. Use `.env.example` as a template
+        ```shell
+         cp .env.example .env 
+        ```
+       
+   2. Update `.env` with your credentials
+
+   #### Accepted .env variables
 
    | Key              | Description                                   |
-   |------------------|-----------------------------------------------|
+      |------------------|-----------------------------------------------|
    | `SPOTIFY_ID`     | your spotify client id                        |
    | `SPOTIFY_SECRET` | your spotify client secret                    |
    | `BASE_URI`       | baseUri for callback endpoint to be hosted at |
    | `PORT`           | port used for callback endpoint               |
 
    > *Note*: `BASE_URI` and `PORT` must match the `RedirectUri` set on the spotify app in Step 3
-   
-    1. Create a `.env` file in the project root. Use `.env.example` as a template
-        ```shell
-         cp .env.example .env 
-        ```
-       
-    2. Update `.env` with your credentials
 
    #### Example `.env`
      ```dotenv
@@ -63,3 +65,23 @@ Spotify Playlist Duplicate Remover is a Golang application that helps you remove
      BASE_URI=localhost
      PORT=8080
      ```
+
+5. **Running the Application:**
+
+   You can run the application with the following flags:
+
+   - To remove duplicates from a specific playlist, use the -playlistIds flag with a comma-separated list of playlist IDs:
+
+   ``` shell
+   go run main.go -playlistIds "3cEYpjA9oz9GiPac4AsH4n,..."
+   ```
+
+   - To remove duplicates from all playlists, use the -all flag:
+
+   ```shell
+   go run main.go -all
+   ```
+
+   The application will authenticate with the Spotify Web API using the provided credentials and then proceed to remove duplicate songs from the specified playlists.
+
+   Note: If you only pass one playlist ID to the -playlistIds flag, the application will treat it as a single ID.

@@ -1,9 +1,12 @@
 package spotifyclient
 
-import "github.com/zmb3/spotify/v2"
+import (
+	"github.com/zmb3/spotify/v2"
+	"strings"
+)
 
 func StringIdToSpotifyId(id string) spotify.ID {
-	return spotify.ID(id)
+	return spotify.ID(strings.TrimSpace(id))
 }
 
 func StringIdsToSpotifyIds(ids []string) []spotify.ID {
