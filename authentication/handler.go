@@ -31,9 +31,9 @@ func NewHandler() *Handler {
 		log.Fatal("REDIRECT_PORT environment variable not found")
 	}
 
-	state := os.Getenv("SPOTIFY_STATE")
-	if state == "" {
-		log.Fatal("SPOTIFY_STATE environment variable not found")
+	state, err := generateRandomState()
+	if err != nil {
+		log.Fatal("Error generating random state:", err)
 	}
 
 	baseUrl := fmt.Sprintf("%s:%s", baseUri, port)
@@ -52,19 +52,7 @@ func (h *Handler) Login(cb LoginCallBack) *spotify.Client {
 
 	// first start an HTTP server
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		token, err := h.auth.Token(r.Context(), h.state, r)
-		if err != nil {
-			http.Error(w, "Couldn't get token", http.StatusForbidden)
-			log.Fatal(err)
-		}
-
-		if st := r.FormValue("state"); st != h.state {
-			http.NotFound(w, r)
-			log.Fatalf("State mismatch: %s != %s\n", st, h.state)
-		}
-
-		_, _ = fmt.Fprintf(w, "Login Completed!")
-		cb.OnLoginSuccess(h.ch, h.auth, token)
+		h.spotifyCallBack(w, r, cb)
 	})
 
 	// Start Web Server
@@ -96,6 +84,22 @@ func (h *Handler) Login(cb LoginCallBack) *spotify.Client {
 	client := <-h.ch
 
 	return client
+}
+
+func (h *Handler) spotifyCallBack(w http.ResponseWriter, r *http.Request, cb LoginCallBack) {
+	token, err := h.auth.Token(r.Context(), h.state, r)
+	if err != nil {
+		http.Error(w, "Couldn't get token", http.StatusForbidden)
+		log.Fatal(err)
+	}
+
+	if st := r.FormValue("state"); st != h.state {
+		http.NotFound(w, r)
+		log.Fatalf("State mismatch: %s != %s\n", st, h.state)
+	}
+
+	_, _ = fmt.Fprintf(w, "Login Completed!")
+	cb.OnLoginSuccess(h.ch, h.auth, token)
 }
 
 func newSpotifyOAuthClient(redirectUrl string) *spotifyauth.Authenticator {
