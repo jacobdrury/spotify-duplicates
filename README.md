@@ -4,7 +4,7 @@
 
 ## Overview
 
-Spotify Playlist Duplicate Remover is a Golang application that helps you remove all duplicate songs from a specified Spotify playlist. This project utilizes the Spotify Web API to access and manipulate playlists. It is designed to run as a standalone application or deployed on a server for automated playlist maintenance.
+Spotify Playlist Duplicate Manager is a Golang application that helps you remove all duplicate songs from a specified Spotify playlist. This project utilizes the Spotify Web API to access and manipulate playlists. It is designed to run as a standalone application or deployed on a server for automated playlist maintenance.
 
 ## Features
 
