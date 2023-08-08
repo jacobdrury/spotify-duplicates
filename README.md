@@ -50,7 +50,7 @@ Spotify Playlist Duplicate Remover is a Golang application that helps you remove
    #### Accepted .env variables
 
    | Key              | Description                                   |
-      |------------------|-----------------------------------------------|
+   |------------------|-----------------------------------------------|
    | `SPOTIFY_ID`     | your spotify client id                        |
    | `SPOTIFY_SECRET` | your spotify client secret                    |
    | `BASE_URI`       | baseUri for callback endpoint to be hosted at |

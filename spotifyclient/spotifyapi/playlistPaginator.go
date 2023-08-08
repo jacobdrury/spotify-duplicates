@@ -9,7 +9,7 @@ import (
 type AllUserPlaylistPaginator struct {
 }
 
-func AllUserPlaylistIterator() *AllUserPlaylistPaginator {
+func NewAllUserPlaylistPaginator() *AllUserPlaylistPaginator {
 	return &AllUserPlaylistPaginator{}
 }
 

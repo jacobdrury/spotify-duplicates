@@ -18,7 +18,7 @@ func (c *SpotifyClient) RemoveDuplicatesFromAllPlaylists() {
 
 	playlistCh := spotifyapi.ConsumePaginatedEndpoint[[]spotify.SimplePlaylist](
 		c.client,
-		spotifyapi.AllUserPlaylistIterator(),
+		spotifyapi.NewAllUserPlaylistPaginator(),
 		spotifyapi.DefaultPageOptions())
 
 	// Process each page as we get them from the paginated endpoint
